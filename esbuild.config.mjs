@@ -46,7 +46,7 @@ const config = {
 			setup(build) {
 				build.onEnd((result) => {
 					const pluginFolder = path.join(
-						process.env.PLUGIN_FOLDER,
+						process.env.VAULT_FOLDER,
 						".obsidian/plugins/my-obsidian-plugin"
 					);
 					fs.writeFileSync(path.join(pluginFolder, ".hotreload"), "");
