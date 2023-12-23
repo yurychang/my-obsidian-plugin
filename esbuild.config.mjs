@@ -1,7 +1,6 @@
 import esbuild from "esbuild";
 import process from "process";
 import builtins from "builtin-modules";
-import { watch } from "node:fs/promises";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -46,16 +45,18 @@ const config = {
 			name: "rebuild-notify",
 			setup(build) {
 				build.onEnd((result) => {
-					console.log(
-						`build ended with ${result.errors.length} errors`
+					const pluginFolder = path.join(
+						process.env.PLUGIN_FOLDER,
+						".obsidian/plugins/my-obsidian-plugin"
 					);
+					fs.writeFileSync(path.join(pluginFolder, ".hotreload"), "");
 
 					for (const file of [
 						"manifest.json",
 						"main.js",
 						"styles.css",
 					]) {
-						copyToPluginFolder(file);
+						copyFiles(pluginFolder, file);
 					}
 				});
 			},
@@ -69,37 +70,17 @@ if (prod) {
 	await context.rebuild();
 	process.exit(0);
 } else {
-	await context.rebuild();
+	await context.watch();
 }
 
-async function copyToPluginFolder(file) {
-	const pluginFolder = path.join(
-		process.env.PLUGIN_FOLDER,
-		".obsidian/plugins/my-obsidian-plugin"
-	);
+async function copyFiles(dest, file) {
+	const destFilePath = path.join(dest, file);
 
-	const destinationPath = path.join(pluginFolder, file);
-
-	// Create the destination folder if it doesn't exist
-	if (!fs.existsSync(pluginFolder)) {
-		fs.mkdirSync(pluginFolder, { recursive: true });
+	if (!fs.existsSync(dest)) {
+		fs.mkdirSync(dest, { recursive: true });
 	}
-	fs.copyFile(file, destinationPath, fs.constants.COPYFILE_FICLONE, () =>
-		console.log(`copy ${file} to ${destinationPath}}`)
-	);
 
-	try {
-		const watcher = watch(file);
-		for await (const event of watcher) {
-			fs.copyFile(
-				event.filename,
-				destinationPath,
-				fs.constants.COPYFILE_FICLONE,
-				() => console.log(`copy ${file} to ${destinationPath}}`)
-			);
-		}
-	} catch (err) {
-		if (err.name === "AbortError") return;
-		throw err;
-	}
+	fs.copyFile(file, destFilePath, () =>
+		console.log(`copy ${file} to ${destFilePath}`)
+	);
 }
